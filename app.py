@@ -1,14 +1,20 @@
 import io
 import uuid
 import pandas as pd
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 import uvicorn
 
 from inspector import storage, generate, report
 from inspector.evaluate import marginals, correlations, subgroups, downstream, privacy
 
 app = FastAPI(title="Synthetic Inspector")
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/health")
 def health_check():

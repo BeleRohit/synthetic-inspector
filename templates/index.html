@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Data Inspector</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338ca;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .card.active {
+            border-left-color: var(--primary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card.complete {
+            border-left-color: var(--success);
+        }
+
+        h2 {
+            margin: 0 0 1rem 0;
+            font-size: 1.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            min-height: 1.5rem;
+        }
+
+        .error {
+            color: var(--error);
+        }
+
+        .success {
+            color: var(--success);
+        }
+        
+        .info {
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Synthetic Data Inspector</h1>
+            <p>Evaluate synthetic tabular data fidelity</p>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="card active" id="card-1">
+            <h2>Step 1: Upload your dataset</h2>
+            <div class="form-group">
+                <input type="file" id="csv-file" accept=".csv" />
+            </div>
+            <button id="btn-upload" onclick="handleUpload()">
+                Upload <div class="spinner" id="spinner-1"></div>
+            </button>
+            <div class="status" id="status-1"></div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="card" id="card-2">
+            <h2>Step 2: Generate synthetic data</h2>
+            <p class="info">This takes ~30 seconds, please wait...</p>
+            <button id="btn-generate" onclick="handleGenerate()" disabled>
+                Generate <div class="spinner" id="spinner-2"></div>
+            </button>
+            <div class="status" id="status-2"></div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="card" id="card-3">
+            <h2>Step 3: View fidelity report</h2>
+            <button id="btn-report" onclick="viewReport()" disabled>
+                View Report
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+
+        function setStatus(step, msg, type = '') {
+            const el = document.getElementById(`status-${step}`);
+            el.textContent = msg;
+            el.className = `status ${type}`;
+        }
+
+        function toggleSpinner(step, show) {
+            document.getElementById(`spinner-${step}`).style.display = show ? 'inline-block' : 'none';
+        }
+
+        async function handleUpload() {
+            const fileInput = document.getElementById('csv-file');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                setStatus(1, 'Please select a CSV file first', 'error');
+                return;
+            }
+            if (!file.name.endsWith('.csv')) {
+                setStatus(1, 'Only .csv files are supported', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-upload');
+            btn.disabled = true;
+            toggleSpinner(1, true);
+            setStatus(1, 'Uploading...', '');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Upload failed');
+                }
+
+                currentJobId = data.job_id;
+                setStatus(1, `Success! Job ID: ${currentJobId}`, 'success');
+                
+                // Update UI state
+                document.getElementById('card-1').classList.remove('active');
+                document.getElementById('card-1').classList.add('complete');
+                
+                document.getElementById('card-2').classList.add('active');
+                document.getElementById('btn-generate').disabled = false;
+            } catch (err) {
+                setStatus(1, err.message, 'error');
+                btn.disabled = false;
+            } finally {
+                toggleSpinner(1, false);
+            }
+        }
+
+        async function handleGenerate() {
+            if (!currentJobId) return;
+
+            const btn = document.getElementById('btn-generate');
+            btn.disabled = true;
+            toggleSpinner(2, true);
+            setStatus(2, 'Generating... (This will take ~30 seconds)', '');
+
+            try {
+                const response = await fetch(`/generate/${currentJobId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Generation failed');
+                }
+
+                setStatus(2, `Success! Generated ${data.synthetic_rows} rows.`, 'success');
+                
+                // Update UI state
+                document.getElementById('card-2').classList.remove('active');
+                document.getElementById('card-2').classList.add('complete');
+                
+                document.getElementById('card-3').classList.add('active');
+                document.getElementById('btn-report').disabled = false;
+            } catch (err) {
+                setStatus(2, err.message, 'error');
+                btn.disabled = false;
+            } finally {
+                toggleSpinner(2, false);
+            }
+        }
+
+        function viewReport() {
+            if (!currentJobId) return;
+            window.open(`/report/${currentJobId}`, '_blank');
+        }
+    </script>
+</body>
+</html>
