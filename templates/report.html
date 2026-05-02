@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Data Fidelity Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 { color: #2c3e50; }
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 75%;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        .badge-pass { background-color: #28a745; }
+        .badge-warn { background-color: #ffc107; color: #212529; }
+        .badge-fail { background-color: #dc3545; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+        th, td {
+            padding: 0.75rem;
+            vertical-align: top;
+            border-top: 1px solid #dee2e6;
+            text-align: left;
+        }
+        thead th {
+            vertical-align: bottom;
+            border-bottom: 2px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+        .finding-section {
+            background-color: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 0.25rem;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Synthetic Data Fidelity Report
+            <span class="badge badge-{{ overall_verdict }}">{{ overall_verdict }}</span>
+        </h1>
+    </header>
+
+    <section>
+        <h2>Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Dimension</th>
+                    <th>Verdict</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for finding in findings %}
+                <tr>
+                    <td>{{ finding.name }}</td>
+                    <td><span class="badge badge-{{ finding.verdict }}">{{ finding.verdict }}</span></td>
+                    <td>{{ "%.2f"|format(finding.score) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Detailed Findings</h2>
+        {% for finding in findings %}
+        <div class="finding-section">
+            <h3>{{ finding.name }} <span class="badge badge-{{ finding.verdict }}">{{ finding.verdict }}</span></h3>
+            <p><strong>Score:</strong> {{ "%.2f"|format(finding.score) }}</p>
+            <p>{{ finding.details }}</p>
+            <div style="margin-top: 20px; text-align: center;">
+                {{ finding.chart_html | safe }}
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+
+    <footer class="footer">
+        <h3>What this report does NOT check:</h3>
+        <ul>
+            <li>Differential privacy guarantees</li>
+            <li>Membership inference attacks</li>
+            <li>Temporal/longitudinal patterns</li>
+            <li>Attribute inference attacks</li>
+            <li>Formal privacy budgets (ε-differential privacy)</li>
+        </ul>
+    </footer>
+</body>
+</html>

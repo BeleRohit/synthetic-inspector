@@ -1,0 +1,20 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/ant-workshop-handson/synthetic-inspector', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/ant-workshop-handson/synthetic-inspector']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - gcloud
+      - run
+      - deploy
+      - synthetic-inspector
+      - --image=gcr.io/ant-workshop-handson/synthetic-inspector
+      - --region=asia-south1
+      - --platform=managed
+      - --allow-unauthenticated
+      - --memory=2Gi
+      - --timeout=300
+      - --set-env-vars=GCS_BUCKET=ant-workshop-handson-synthetic-inspector
+images:
+  - 'gcr.io/ant-workshop-handson/synthetic-inspector'
